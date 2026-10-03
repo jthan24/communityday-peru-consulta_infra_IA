@@ -8,7 +8,7 @@ The diagram below illustrates the AWS infrastructure topology provisioned by thi
 
 graph TB
     subgraph Internet["🌐 Internet"]
-        Users["Users / External Traffic"]
+        Users["Usuarios / Clientes"]
     end
 
     subgraph AWS["☁️ AWS Cloud (us-east-1)"]
@@ -17,23 +17,23 @@ graph TB
             IGW["Internet Gateway (IGW)"]
 
             subgraph AZ1["Availability Zone 1 (us-east-1a)"]
-                subgraph PubSub1["Public Subnet 1 (10.0.0.0/24)"]
+                subgraph PubSub1["Subnet Pública 1 (10.0.0.0/24)"]
                     NAT1["NAT Gateway"]
                     ELB_Pub["Public Load Balancers\n(kubernetes.io/role/elb)"]
                 end
 
-                subgraph PrivSub1["Private Subnet 1 (10.0.10.0/24)"]
+                subgraph PrivSub1["Subnet Privada 1 (10.0.10.0/24)"]
                     Node1["Worker Node 1\n(t3.medium)"]
                     ELB_Priv["Internal Load Balancers\n(kubernetes.io/role/internal-elb)"]
                 end
             end
 
             subgraph AZ2["Availability Zone 2 (us-east-1b)"]
-                subgraph PubSub2["Public Subnet 2 (10.0.1.0/24)"]
-                    PubDummy["Public Subnet 2"]
+                subgraph PubSub2["Subnet Pública 2 (10.0.1.0/24)"]
+                    PubDummy["Subnet pública secundaria"]
                 end
 
-                subgraph PrivSub2["Private Subnet 2 (10.0.11.0/24)"]
+                subgraph PrivSub2["Subnet Privada 2 (10.0.11.0/24)"]
                     Node2["Worker Node 2\n(t3.medium)"]
                 end
             end
@@ -54,14 +54,14 @@ graph TB
         end
     end
 
-    %% Connections
+    %% Conexiones
     Users --> IGW
     IGW <--> PubSub1
     IGW <--> PubSub2
 
     NAT1 --> IGW
-    Node1 -- "Outbound Internet Traffic" --> NAT1
-    Node2 -- "Outbound Internet Traffic" --> NAT1
+    Node1 -- "Egresos a Internet" --> NAT1
+    Node2 -- "Egresos a Internet" --> NAT1
 
     EKS_API <--> SG_Cluster
     SG_Cluster <-->|TLS 443 / Ports 1025-65535| SG_Nodes
@@ -175,3 +175,17 @@ terraform destroy
 
 
 Confirm the destruction by entering yes when prompted.
+
+
+
+aws eks list-clusters
+aws eks update-kubeconfig --name community-day-peru --kubeconfig kubeconfig --alias community-day-peru
+export KUBECONFIG=$PWD/kubeconfig
+kubectl get pods -A 
+
+
+
+kubectl run pg-psql -i --tty --image=postgres:15.17 --restart=Never --env="PGPASSWORD=ChangeMeInProduction123!" -- psql -h community-day-peru-db.cvkciuqukkf9.us-west-2.rds.amazonaws.com -U dbadmin
+
+
+kubectl run pg-psql-allowed -i --tty --image=postgres:15.17 --restart=Never --env="PGPASSWORD=ChangeMeInProduction123!" -- psql -h community-day-peru-db.cvkciuqukkf9.us-west-2.rds.amazonaws.com -U dbadmin

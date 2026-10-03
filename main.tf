@@ -3,13 +3,13 @@
 # ------------------------------------------------------------------------------
 variable "aws_region" {
   type        = string
-  default     = "us-east-1"
+  default     = "us-west-2"
   description = "Región de AWS donde se desplegará la infraestructura"
 }
 
 variable "cluster_name" {
   type        = string
-  default     = "my-eks-cluster"
+  default     = "community-day-peru"
   description = "Nombre del clúster EKS y prefijo de recursos"
 }
 
@@ -205,7 +205,7 @@ resource "aws_security_group" "nodes" {
 # ------------------------------------------------------------------------------
 resource "aws_cloudwatch_log_group" "eks" {
   name              = "/aws/eks/${var.cluster_name}/cluster"
-  retention_in_days = 30
+  retention_in_days = 1
 
   tags = {
     Name = "${var.cluster_name}-log-group"
@@ -311,8 +311,73 @@ resource "aws_eks_node_group" "main" {
 }
 
 # ------------------------------------------------------------------------------
+# RDS DATABASE RESOURCES
+# ------------------------------------------------------------------------------
+resource "aws_db_subnet_group" "rds" {
+  name        = "${var.cluster_name}-db-subnet-group"
+  subnet_ids  = aws_subnet.private[*].id
+
+  tags = {
+    Name = "${var.cluster_name}-db-subnet-group"
+  }
+}
+
+
+resource "aws_security_group" "rds" {
+  name        = "${var.cluster_name}-rds-sg"
+  description = "Security group for RDS instance allowing access from EKS nodes"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description     = "Allow PostgreSQL traffic from EKS worker nodes"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.nodes.id]
+  }
+  
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.cluster_name}-rds-sg"
+  }
+}
+
+resource "aws_db_instance" "postgres" {
+  identifier             = "${var.cluster_name}-db"
+  allocated_storage      = 20
+  max_allocated_storage  = 100
+  engine                 = "postgres"
+  engine_version         = "15"
+  instance_class         = "db.t4g.micro"
+  db_name                = "appdb"
+  username               = "dbadmin"
+  password               = "ChangeMeInProduction123!"
+  db_subnet_group_name   = aws_db_subnet_group.rds.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  skip_final_snapshot    = true
+  publicly_accessible    = false
+
+  tags = {
+    Name = "${var.cluster_name}-rds"
+  }
+}
+
+
+# ------------------------------------------------------------------------------
 # OUTPUTS
 # ------------------------------------------------------------------------------
+
+output "rds_endpoint" {
+  description = "Endpoint of the RDS PostgreSQL instance"
+  value       = aws_db_instance.postgres.endpoint
+}
+
 output "cluster_endpoint" {
   description = "Endpoint del Control Plane de EKS"
   value       = aws_eks_cluster.main.endpoint
