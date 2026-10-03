@@ -1,0 +1,4 @@
+terraform 1.16.5
+terraform-docs 0.24.0
+awscli 2.37.9
+kubectl 1.37.1
