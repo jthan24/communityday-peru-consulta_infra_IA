@@ -188,3 +188,7 @@ kubectl get pods -A
 kubectl run pg-psql -i --tty --image=postgres:15.17 --restart=Never --env="PGPASSWORD=ChangeMeInProduction123!" -- psql -h community-day-peru-db.cvkciuqukkf9.us-west-2.rds.amazonaws.com -U appdb -c "\l" 2>&1
 
 kubectl run pg-psql-allowed -i --tty --image=postgres:15.17 --restart=Never --env="PGPASSWORD=ChangeMeInProduction123!" -- psql -h community-day-peru-db.cvkciuqukkf9.us-west-2.rds.amazonaws.com -U appdb -c "\l" 2>&1
+
+## Cost
+October 2026 (MTD)  $2.63
+Cluster was live during 8 hours at least! 
